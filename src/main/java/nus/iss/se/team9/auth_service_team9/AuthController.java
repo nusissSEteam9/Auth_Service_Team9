@@ -1,5 +1,7 @@
 package nus.iss.se.team9.auth_service_team9;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import nus.iss.se.team9.auth_service_team9.model.EmailDetails;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,15 +28,25 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
-    
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
     @Value("${email.service.url}")
     private String emailServiceUrl;
 
-
     @PostMapping("/login")
-    public ResponseEntity<?> loginlogic(@RequestParam(name = "username") String username, @RequestParam(name = "password") String password, HttpSession httpSession) {
+    public ResponseEntity<?> login(@RequestParam(name = "username") String username,
+                                        @RequestParam(name = "password") String password,
+                                        HttpSession httpSession) {
         User user = authService.getUserByUsername(username);
         if (user != null && user.getPassword().equals(password)) {
+            String token = Jwts.builder()
+                    .setSubject(user.getUsername())
+                    .setIssuedAt(new Date())
+                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // Token valid for 10 hours
+                    .signWith(SignatureAlgorithm.HS256, jwtSecret) // Use the same secret key as in filter
+                    .compact();
+
             httpSession.setAttribute("userId", user.getId());
             if (authService.checkIfAdmin(user)) {
                 httpSession.setAttribute("userType", "admin");
@@ -44,7 +57,9 @@ public class AuthController {
                     httpSession.invalidate();
                     return ResponseEntity.status(403).body("Account has been deleted.");
                 }
-                return ResponseEntity.ok("Member login successful");
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .body("Member login successful");
             }
         } else {
             return ResponseEntity.status(401).body("Incorrect username or password.");
