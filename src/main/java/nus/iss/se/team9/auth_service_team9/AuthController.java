@@ -35,9 +35,10 @@ public class AuthController {
     private String emailServiceUrl;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam(name = "username") String username,
-                                        @RequestParam(name = "password") String password,
+    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials,
                                         HttpSession httpSession) {
+        String username = credentials.get("username");
+        String password = credentials.get("password");
         User user = authService.getUserByUsername(username);
         if (user != null && user.getPassword().equals(password)) {
             String token = Jwts.builder()
