@@ -1,5 +1,6 @@
 package nus.iss.se.team9.auth_service_team9.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
@@ -27,12 +28,18 @@ public class Ingredient {
 	@Column
 	private Double saturatedFat;
 	@ManyToMany
+	@JoinTable(
+		name = "ingredient_recipes",
+		joinColumns = @JoinColumn(name = "recipes_id"),
+		inverseJoinColumns = @JoinColumn(name = "ingredients_id")
+	)
+	@JsonBackReference
 	private List<Recipe> recipes;
-	
+
 	public Ingredient() {
 		recipes = new ArrayList<>();
 	}
-	
+
 	public Ingredient(String foodText, double protein, double calories, double carbohydrate, double sugar, double sodium, double fat, double saturatedFat) {
 		this.foodText = foodText;
 		this.protein = protein;
@@ -44,7 +51,7 @@ public class Ingredient {
 		this.saturatedFat = saturatedFat;
 		recipes = new ArrayList<>();
 	}
-	
+
 	public Integer getId() {
 		return id;
 	}
@@ -105,7 +112,7 @@ public class Ingredient {
 	public void setRecipes(List<Recipe> recipes) {
 		this.recipes = recipes;
 	}
-	
+
 	@Override
 	public String toString() {
 		return foodText + " (" + id + ") " + protein + ", " + calories + ", " + carbohydrate + ", " + sugar + ", " + sodium + ", " + fat + ", " + saturatedFat;

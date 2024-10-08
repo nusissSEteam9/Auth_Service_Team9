@@ -15,31 +15,36 @@ public abstract class Report {
 	private String reason;
 	@Enumerated(EnumType.STRING)
 	private Status status;
-	
-	// getter and setter
+
 	public Integer getId() {
 		return id;
 	}
+
 	public void setId(Integer id) {
 		this.id = id;
 	}
+
 	public Member getMember() {
 		return member;
 	}
+
 	public void setMember(Member member) {
 		this.member = member;
 	}
-	public String getReason() {
+
+	public @NotBlank(message = "Reason is required") String getReason() {
 		return reason;
 	}
-	public void setReason(String reason) {
+
+	public void setReason(@NotBlank(message = "Reason is required") String reason) {
 		this.reason = reason;
 	}
+
 	public Status getStatus() {
 		return status;
 	}
+
 	public void setStatus(Status status) {
 		this.status = status;
 	}
-	
 }

@@ -1,13 +1,10 @@
 package nus.iss.se.team9.auth_service_team9;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.validation.Valid;
-import nus.iss.se.team9.auth_service_team9.model.EmailDetails;
 import nus.iss.se.team9.auth_service_team9.model.Member;
 import nus.iss.se.team9.auth_service_team9.model.Status;
 import nus.iss.se.team9.auth_service_team9.model.User;
-import nus.iss.se.team9.auth_service_team9.service.AuthService;
+import nus.iss.se.team9.auth_service_team9.service.UserService;
 import nus.iss.se.team9.auth_service_team9.service.EmailService;
 import nus.iss.se.team9.auth_service_team9.service.JWTService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +14,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
-import java.util.Date;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,18 +22,14 @@ import java.util.Map;
 @RequestMapping("/auth")
 public class AuthController {
     @Autowired
-    private AuthService authService;
+    private UserService userService;
     @Autowired
     private JWTService jwtService;
     @Autowired
     private EmailService emailService;
-    @Autowired
-    private RestTemplate restTemplate;
 
     @Value("${jwt.secret}")
     private String jwtSecret;
-    @Value("${email.service.url}")
-    private String emailServiceUrl;
     @Value("${user.service.url}")
     private String userServiceUrl;
 
@@ -44,11 +37,11 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
         String password = credentials.get("password");
-        User user = authService.getUserByUsername(username);
+        User user = userService.searchUserByUsername(username);
         if (user != null && user.getPassword().equals(password)) {
-            String role = authService.checkIfAdmin(user) ? "admin" : "member";
+            String role = userService.checkIfAdmin(user) ? "admin" : "member";
             String token = jwtService.generateJWT(username,role);
-            if (role.equals("member") && authService.getMemberById(user.getId()).getMemberStatus() == Status.DELETED) {
+            if (role.equals("member") && userService.searchMemberById(user.getId()).getMemberStatus() == Status.DELETED) {
                 return ResponseEntity.status(403).body("Account has been deleted.");
             }
             return ResponseEntity.ok()
@@ -74,17 +67,12 @@ public class AuthController {
             response.put("errors", bindingResult.getFieldErrors());
             return ResponseEntity.badRequest().body(response);
         }
-
         newMember.setMemberStatus(Status.CREATED);
+        // no email in request
         if (newMember.getEmail() == null || newMember.getEmail().isEmpty()) {
             String token = jwtService.generateJWT(newMember.getUsername(),"member");
-            String url = userServiceUrl + "/create";
             try {
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.set("Authorization", "Bearer " + token);
-                HttpEntity<Member> request = new HttpEntity<>(newMember, headers);
-                ResponseEntity<Map> userServiceResponse = restTemplate.postForEntity(url, request, Map.class);
+                ResponseEntity<Map> userServiceResponse = userService.createMember(newMember,token);
                 if (userServiceResponse.getStatusCode() != HttpStatus.OK) {
                     throw new RuntimeException("Failed to create user: " + userServiceResponse.getStatusCode());
                 }
@@ -96,12 +84,10 @@ public class AuthController {
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                     .body(response);
         }
-
-        String code = AuthService.generateVerificationCode();
-        EmailDetails emailDetails = emailService.generateVerifyCodeEmailObj(newMember,code);
-        String url = emailServiceUrl + "/sendEmailOTP";
+        // email is exist in request
+        String code = UserService.generateVerificationCode();
         try {
-            ResponseEntity<String> emailResponse = restTemplate.postForEntity(url, emailDetails, String.class);
+            ResponseEntity<String> emailResponse = emailService.sendVerifyCodeEmail(newMember,code);
             if (emailResponse.getStatusCode() == HttpStatus.OK) {
                 response.put("newMember", newMember);
                 response.put("verifyCode", code);
@@ -122,12 +108,7 @@ public class AuthController {
         String token = jwtService.generateJWT(newMember.getUsername(),"member");
         String url = userServiceUrl + "/create";
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Bearer " + token);
-            HttpEntity<Member> request = new HttpEntity<>(newMember, headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-
+            ResponseEntity<Map> response = userService.createMember(newMember,token);
             if (response.getStatusCode() == HttpStatus.OK) {
                 return ResponseEntity.ok(token);
             } else {
