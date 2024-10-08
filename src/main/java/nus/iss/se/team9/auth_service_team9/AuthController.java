@@ -35,17 +35,9 @@ public class AuthController {
     private String emailServiceUrl;
 
     @PostMapping("/login")
-<<<<<<< HEAD
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
-        String username = loginRequest.get("username");
-        String password = loginRequest.get("password");
-
-=======
-    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials,
-                                        HttpSession httpSession) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
         String password = credentials.get("password");
->>>>>>> b0d2bf8368736604154c61b336ba412bd2cf9793
         User user = authService.getUserByUsername(username);
         if (user != null && user.getPassword().equals(password)) {
             String role = authService.checkIfAdmin(user) ? "admin" : "member";
