@@ -35,63 +35,77 @@ public class AuthController {
     private String emailServiceUrl;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestParam(name = "username") String username,
-                                        @RequestParam(name = "password") String password,
-                                        HttpSession httpSession) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
+        String username = loginRequest.get("username");
+        String password = loginRequest.get("password");
+
         User user = authService.getUserByUsername(username);
         if (user != null && user.getPassword().equals(password)) {
+            String role = authService.checkIfAdmin(user) ? "admin" : "member";
+
             String token = Jwts.builder()
                     .setSubject(user.getUsername())
+                    .claim("role", role)  // Adding role claim
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // Token valid for 10 hours
                     .signWith(SignatureAlgorithm.HS256, jwtSecret) // Use the same secret key as in filter
                     .compact();
 
-            httpSession.setAttribute("userId", user.getId());
-            if (authService.checkIfAdmin(user)) {
-                httpSession.setAttribute("userType", "admin");
-                return ResponseEntity.ok("Admin login successful");
-            } else {
-                httpSession.setAttribute("userType", "member");
-                if (authService.getMemberById(user.getId()).getMemberStatus() == Status.DELETED) {
-                    httpSession.invalidate();
-                    return ResponseEntity.status(403).body("Account has been deleted.");
-                }
-                return ResponseEntity.ok()
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                        .body("Member login successful");
+            // Additional logic for member status
+            if (role.equals("member") && authService.getMemberById(user.getId()).getMemberStatus() == Status.DELETED) {
+                return ResponseEntity.status(403).body("Account has been deleted.");
             }
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                    .body(role + " login successful");
         } else {
             return ResponseEntity.status(401).body("Incorrect username or password.");
         }
     }
 
+
+
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(HttpSession session) {
-        session.removeAttribute("userId");
-        session.invalidate();
+    public ResponseEntity<String> logout() {
         return ResponseEntity.ok("Logout successful.");
     }
 
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> registerMember(@Valid @RequestBody Member newMember,
-                                                              BindingResult bindingResult,
-                                                              HttpSession httpSession) {
+                                                              BindingResult bindingResult) {
         Map<String, Object> response = new HashMap<>();
+
+        // 检查输入数据是否有效
         if (bindingResult.hasErrors()) {
             response.put("message", "Invalid input data");
             response.put("errors", bindingResult.getFieldErrors());
             return ResponseEntity.badRequest().body(response);
         }
+
         newMember.setMemberStatus(Status.CREATED);
 
+        // 处理没有email的用户（如允许这种情况）
         if (newMember.getEmail() == null || newMember.getEmail().isEmpty()) {
             authService.saveMember(newMember);
-            httpSession.setAttribute("userId", newMember.getId());
+
+            // 生成JWT
+            String token = Jwts.builder()
+                    .setSubject(newMember.getUsername())
+                    .claim("role", "member")  // 假设新用户的默认角色为 member
+                    .setIssuedAt(new Date())
+                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // Token有效期10小时
+                    .signWith(SignatureAlgorithm.HS256, jwtSecret)  // 使用密钥签名
+                    .compact();
+
+            // 返回JWT
             response.put("message", "Member registered successfully, please set your preferences.");
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)  // 将JWT添加到响应头部
+                    .body(response);
         }
 
+        // 处理有email的用户
         String code = AuthService.generateVerificationCode();
         EmailDetails emailDetails = new EmailDetails();
         emailDetails.setTo(newMember.getEmail());
@@ -108,13 +122,24 @@ public class AuthController {
             ResponseEntity<String> emailResponse = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
 
             if (emailResponse.getStatusCode() == HttpStatus.OK) {
-                // 邮件发送成功
-                httpSession.setAttribute("userId", newMember.getId());
-                httpSession.setAttribute("verificationCode", code);
+                // 邮件发送成功，生成JWT
+//                authService.saveMember(newMember);
+                String token = Jwts.builder()
+                        .setSubject(newMember.getUsername())
+                        .claim("role", "member")
+                        .setIssuedAt(new Date())
+                        .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
+                        .signWith(SignatureAlgorithm.HS256, jwtSecret)
+                        .compact();
+
                 response.put("newMember", newMember);
                 response.put("verifyCode", code);
                 response.put("message", "Verification email sent. Please verify your email.");
-                return ResponseEntity.ok(response);
+
+                // 返回JWT
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .body(response);
             } else {
                 // 邮件发送失败
                 response.put("message", "Failed to send verification email.");
@@ -126,4 +151,5 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
+
 }
