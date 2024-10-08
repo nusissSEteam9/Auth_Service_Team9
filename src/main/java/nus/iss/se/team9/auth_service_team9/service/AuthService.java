@@ -21,6 +21,11 @@ public class AuthService {
     public User getUserByUsername(String username) {
         return userRepo.findByUsername(username);
     }
+    // Searching and Filtering methods
+    public Member getMemberById(Integer id) {
+        Optional<Member> member = memberRepo.findById(id);
+        return member.orElse(null);
+    }
 
     public boolean checkIfAdmin(User user) {
         if (user instanceof Admin) {
@@ -30,17 +35,6 @@ public class AuthService {
         }
         return false;
     }
-
-    // Searching and Filtering methods
-    public Member getMemberById(Integer id) {
-        Optional<Member> member = memberRepo.findById(id);
-        return member.orElse(null);
-    }
-
-    public void saveMember(Member member) {
-        memberRepo.save(member);
-    }
-
     public static String generateVerificationCode() {
         int codeLength = 4;
         Random random = new Random();
