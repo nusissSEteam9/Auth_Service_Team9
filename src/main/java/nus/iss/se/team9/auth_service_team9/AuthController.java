@@ -2,7 +2,6 @@ package nus.iss.se.team9.auth_service_team9;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import nus.iss.se.team9.auth_service_team9.model.EmailDetails;
 import nus.iss.se.team9.auth_service_team9.model.Member;
