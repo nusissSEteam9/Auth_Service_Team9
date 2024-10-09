@@ -6,6 +6,7 @@ import nus.iss.se.team9.auth_service_team9.model.User;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -23,22 +24,6 @@ public class UserService {
     private RestTemplate restTemplate;
     @Value("${user.service.url}")
     private String userServiceUrl;
-
-    public User searchUserByUsername(String username) {
-        String url = userServiceUrl + "/search/user";
-        Map<String, String> requestBody = new HashMap<>();
-        requestBody.put("username", username);
-        ResponseEntity<User> response = restTemplate.postForEntity(url, requestBody, User.class);
-        return response.getBody();
-    }
-
-    public Member searchMemberById(Integer id) {
-        String url = userServiceUrl + "/search/member";
-        Map<String, Integer> requestBody = new HashMap<>();
-        requestBody.put("id", id);
-        ResponseEntity<Member> response = restTemplate.postForEntity(url, requestBody, Member.class);
-        return response.getBody();
-    }
 
     public ResponseEntity<Map> createMember(Member newMember, String token) {
         String url = userServiceUrl + "/create";
@@ -64,14 +49,20 @@ public class UserService {
         }
     }
 
-    public boolean checkIfAdmin(User user) {
-        if (user instanceof Admin) {
-            return true;
-        } else if (user instanceof Member) {
-            return false;
+    public ResponseEntity<Map<String, Object>> validateUser(Map<String, String> credentials) {
+        String url = userServiceUrl + "/validate-login";
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, credentials, Map.class);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                return ResponseEntity.ok(response.getBody());
+            } else {
+                return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
-        return false;
     }
+
     public static String generateVerificationCode() {
         int codeLength = 4;
         Random random = new Random();

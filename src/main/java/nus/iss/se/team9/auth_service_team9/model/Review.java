@@ -1,6 +1,5 @@
 package nus.iss.se.team9.auth_service_team9.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
@@ -17,10 +16,8 @@ public class Review {
 	@Column
 	private LocalDate reviewDate;
 	@ManyToOne
-	@JsonBackReference
 	private Member member;
 	@ManyToOne
-	@JsonBackReference
 	private Recipe recipe;
 	
 	public Review() {
@@ -33,52 +30,42 @@ public class Review {
 		this.member = member;
 		this.recipe = recipe;
 	}
-
+	
+	// getter and setter
 	public Integer getId() {
 		return id;
 	}
-
 	public void setId(Integer id) {
 		this.id = id;
 	}
-
 	public Integer getRating() {
 		return rating;
 	}
-
 	public void setRating(Integer rating) {
 		this.rating = rating;
 	}
-
 	public String getComment() {
 		return comment;
 	}
-
 	public void setComment(String comment) {
 		this.comment = comment;
 	}
-
-	public LocalDate getReviewDate() {
-		return reviewDate;
-	}
-
-	public void setReviewDate(LocalDate reviewDate) {
-		this.reviewDate = reviewDate;
-	}
-
-	public Recipe getRecipe() {
-		return recipe;
-	}
-
-	public void setRecipe(Recipe recipe) {
-		this.recipe = recipe;
-	}
-
 	public Member getMember() {
 		return member;
 	}
-
 	public void setMember(Member member) {
 		this.member = member;
+	}
+	public Recipe getRecipe() {
+		return recipe;
+	}
+	public void setRecipe(Recipe recipe) {
+		this.recipe = recipe;
+	}
+	public LocalDate getReviewDate() {
+		return reviewDate;
+	}
+	public void setReviewDate(LocalDate reviewDate) {
+		this.reviewDate = reviewDate;
 	}
 }

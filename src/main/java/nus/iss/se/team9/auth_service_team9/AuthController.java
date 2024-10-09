@@ -9,6 +9,7 @@ import nus.iss.se.team9.auth_service_team9.service.EmailService;
 import nus.iss.se.team9.auth_service_team9.service.JWTService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -37,18 +38,33 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
         String username = credentials.get("username");
         String password = credentials.get("password");
-        User user = userService.searchUserByUsername(username);
-        if (user != null && user.getPassword().equals(password)) {
-            String role = userService.checkIfAdmin(user) ? "admin" : "member";
-            String token = jwtService.generateJWT(username,role);
-            if (role.equals("member") && userService.searchMemberById(user.getId()).getMemberStatus() == Status.DELETED) {
-                return ResponseEntity.status(403).body("Account has been deleted.");
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("username", username);
+        requestBody.put("password", password);
+        ResponseEntity<Map<String, Object>> response = userService.validateUser(requestBody);
+
+        if (response.getStatusCode() == HttpStatus.OK) {
+            Map<String, Object> responseBody = response.getBody();
+            Boolean isValidLogin = (Boolean) responseBody.get("isValidLogin");
+            String role = (String) responseBody.get("role");
+            String status = (String) responseBody.get("status");
+
+            if (isValidLogin != null && isValidLogin) {
+                Integer userId = (Integer) responseBody.get("userId");
+                String token = jwtService.generateJWT(username, userId, role);
+
+                if (status != null && status.equals("deleted")) {
+                    return ResponseEntity.status(403).body("Account has been deleted.");
+                }
+
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .body(role + " login successful, JWT token: " + token);
+            } else {
+                return ResponseEntity.status(401).body("Incorrect username or password.");
             }
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                    .body(role + " login successful, JWT token :" + token);
         } else {
-            return ResponseEntity.status(401).body("Incorrect username or password.");
+            return ResponseEntity.status(response.getStatusCode()).body("Failed to validate login.");
         }
     }
 
@@ -70,7 +86,7 @@ public class AuthController {
         newMember.setMemberStatus(Status.CREATED);
         // no email in request
         if (newMember.getEmail() == null || newMember.getEmail().isEmpty()) {
-            String token = jwtService.generateJWT(newMember.getUsername(),"member");
+            String token = jwtService.generateJWT(newMember.getUsername(),newMember.getId(),"member");
             try {
                 ResponseEntity<Map> userServiceResponse = userService.createMember(newMember,token);
                 if (userServiceResponse.getStatusCode() != HttpStatus.OK) {
@@ -105,7 +121,7 @@ public class AuthController {
 
     @PostMapping("/verifyCode/success")
     public ResponseEntity<?> verifyEmailDone(@RequestBody Member newMember) {
-        String token = jwtService.generateJWT(newMember.getUsername(),"member");
+        String token = jwtService.generateJWT(newMember.getUsername(), newMember.getId(), "member");
         String url = userServiceUrl + "/create";
         try {
             ResponseEntity<Map> response = userService.createMember(newMember,token);

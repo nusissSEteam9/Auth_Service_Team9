@@ -13,9 +13,10 @@ public class JWTService {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    public String generateJWT(String username,String role) {
+    public String generateJWT(String username,Integer id,String role) {
         return Jwts.builder()
                 .setSubject(username)
+                .claim("id", id)
                 .claim("role", role)  // Adding role claim
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // Token valid for 10 hours
