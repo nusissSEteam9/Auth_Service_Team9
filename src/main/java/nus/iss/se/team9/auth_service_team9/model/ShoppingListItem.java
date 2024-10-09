@@ -1,5 +1,6 @@
 package nus.iss.se.team9.auth_service_team9.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
@@ -8,6 +9,7 @@ public class ShoppingListItem {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;
 	@ManyToOne
+	@JsonBackReference // Backward serialization to avoid infinite recursion
 	private Member member;
 	@Column
 	private String ingredientName;
