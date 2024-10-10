@@ -1,7 +1,6 @@
 package nus.iss.se.team9.auth_service_team9.service;
 
-import nus.iss.se.team9.auth_service_team9.model.EmailDetails;
-import nus.iss.se.team9.auth_service_team9.model.Member;
+import nus.iss.se.team9.auth_service_team9.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -12,8 +11,12 @@ import org.springframework.web.client.RestTemplate;
 public class EmailService {
     @Value("${email.service.url}")
     private String emailServiceUrl;
+
+    private final RestTemplate restTemplate;
     @Autowired
-    private RestTemplate restTemplate;
+    public EmailService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     public ResponseEntity<String> sendVerifyCodeEmail(String email, String code){
         EmailDetails emailDetails = new EmailDetails();

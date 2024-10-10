@@ -1,35 +1,27 @@
 package nus.iss.se.team9.auth_service_team9;
 
 import jakarta.validation.Valid;
-import nus.iss.se.team9.auth_service_team9.model.Member;
-import nus.iss.se.team9.auth_service_team9.model.MemberDTO;
-import nus.iss.se.team9.auth_service_team9.model.Status;
-import nus.iss.se.team9.auth_service_team9.service.UserService;
-import nus.iss.se.team9.auth_service_team9.service.EmailService;
-import nus.iss.se.team9.auth_service_team9.service.JWTService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import nus.iss.se.team9.auth_service_team9.model.*;
+import nus.iss.se.team9.auth_service_team9.service.*;
+import org.springframework.beans.factory.annotation.*;
 import org.springframework.http.*;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private JWTService jwtService;
-    @Autowired
-    private EmailService emailService;
+    private final UserService userService;
+    private final JWTService jwtService;
+    private final EmailService emailService;
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
-    @Value("${user.service.url}")
-    private String userServiceUrl;
+    @Autowired
+    public AuthController(UserService userService, JWTService jwtService, EmailService emailService) {
+        this.userService = userService;
+        this.jwtService = jwtService;
+        this.emailService = emailService;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
@@ -42,6 +34,7 @@ public class AuthController {
 
         if (response.getStatusCode() == HttpStatus.OK) {
             Map<String, Object> responseBody = response.getBody();
+            assert responseBody != null;
             Boolean isValidLogin = (Boolean) responseBody.get("isValidLogin");
             String role = (String) responseBody.get("role");
             String status = (String) responseBody.get("status");
