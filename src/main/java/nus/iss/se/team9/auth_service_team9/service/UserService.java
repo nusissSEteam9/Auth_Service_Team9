@@ -1,6 +1,5 @@
 package nus.iss.se.team9.auth_service_team9.service;
 
-import nus.iss.se.team9.auth_service_team9.model.Member;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -16,10 +15,14 @@ import java.util.Random;
 @Service
 public class UserService {
 
+    private final RestTemplate restTemplate;
+    private final String userServiceUrl;
+
     @Autowired
-    private RestTemplate restTemplate;
-    @Value("${user.service.url}")
-    private String userServiceUrl;
+    public UserService(RestTemplate restTemplate, @Value("${user.service.url}") String userServiceUrl) {
+        this.restTemplate = restTemplate;
+        this.userServiceUrl = userServiceUrl;
+    }
 
     public ResponseEntity<Integer> createMember(Map<String, String> memberData) {
         String url = userServiceUrl + "/create";
@@ -28,7 +31,6 @@ public class UserService {
             String password = memberData.get("password");
             String email = memberData.get("email");
 
-            // 构建请求的 JSON 数据
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("username", username);
             requestBody.put("password", password);
@@ -36,15 +38,9 @@ public class UserService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-
-            // 构建请求实体，包含 JSON 数据和 headers
             HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
-
-            // 发送 POST 请求并期待返回的 Member 对象
             ResponseEntity<Integer> response = restTemplate.postForEntity(url, request, Integer.class);
-
             if (response.getStatusCode() == HttpStatus.OK) {
-                // 返回创建的 Member 对象
                 return ResponseEntity.ok(response.getBody());
             } else {
                 System.out.println("Unexpected response status: " + response.getStatusCode());
@@ -55,7 +51,7 @@ public class UserService {
             System.out.println("Error body: " + e.getResponseBodyAsString());
             return ResponseEntity.status(e.getStatusCode()).body(null);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
