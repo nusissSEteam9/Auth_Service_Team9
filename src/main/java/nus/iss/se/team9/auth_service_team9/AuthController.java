@@ -2,6 +2,7 @@ package nus.iss.se.team9.auth_service_team9;
 
 import jakarta.validation.Valid;
 import nus.iss.se.team9.auth_service_team9.model.Member;
+import nus.iss.se.team9.auth_service_team9.model.MemberDTO;
 import nus.iss.se.team9.auth_service_team9.model.Status;
 import nus.iss.se.team9.auth_service_team9.service.UserService;
 import nus.iss.se.team9.auth_service_team9.service.EmailService;
@@ -70,41 +71,35 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String, Object>> registerMember(@Valid @RequestBody Member newMember,
-                                                              BindingResult bindingResult) {
+    public ResponseEntity<Map<String, Object>> registerMember(@Valid @RequestBody MemberDTO memberDTO) {
         Map<String, Object> response = new HashMap<>();
 
-        if (bindingResult.hasErrors()) {
-            response.put("message", "Invalid input data");
-            response.put("errors", bindingResult.getFieldErrors());
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        newMember.setMemberStatus(Status.CREATED);
-        // no email in request
-        if (newMember.getEmail() == null || newMember.getEmail().isEmpty()) {
+        // No email in request
+        if (memberDTO.getEmail() == null || memberDTO.getEmail().isEmpty()) {
             System.out.println("No email");
-            String token = jwtService.generateJWT(newMember.getUsername(),newMember.getId(),"member");
+            Map<String, String> memberData = new HashMap<>();
+            memberData.put("username", memberDTO.getUsername());
+            memberData.put("password", memberDTO.getPassword());
+            memberData.put("email", memberDTO.getEmail());
             try {
-                ResponseEntity<Map> userServiceResponse = userService.createMember(newMember,token);
-                if (userServiceResponse.getStatusCode() != HttpStatus.OK) {
-                    throw new RuntimeException("Failed to create user: " + userServiceResponse.getStatusCode());
-                }
+                ResponseEntity<Integer> userServiceResponse = userService.createMember(memberData);
+                Integer createdMemberId = userServiceResponse.getBody();
+                String token = jwtService.generateJWT(memberDTO.getUsername(), createdMemberId, "member");
+                response.put("message", "Member registered successfully, please set your preferences.");
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .body(response);
             } catch (Exception e) {
                 throw new RuntimeException("Error occurred while creating user: " + e.getMessage());
             }
-            response.put("message", "Member registered successfully, please set your preferences.");
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                    .body(response);
         }
-        // email is exist in request
+
+        // Email exists, validate email
         System.out.println("email need to be validated");
         String code = UserService.generateVerificationCode();
         try {
-            ResponseEntity<String> emailResponse = emailService.sendVerifyCodeEmail(newMember,code);
+            ResponseEntity<String> emailResponse = emailService.sendVerifyCodeEmail(memberDTO.getEmail(), code);
             if (emailResponse.getStatusCode() == HttpStatus.OK) {
-                response.put("newMember", newMember);
                 response.put("verifyCode", code);
                 response.put("message", "Verification email sent. Please verify your email.");
                 return ResponseEntity.ok().body(response);
@@ -118,12 +113,17 @@ public class AuthController {
         }
     }
 
+
     @PostMapping("/verifyCode/success")
-    public ResponseEntity<?> verifyEmailDone(@RequestBody Member newMember) {
-        String token = jwtService.generateJWT(newMember.getUsername(), newMember.getId(), "member");
-        String url = userServiceUrl + "/create";
+    public ResponseEntity<?> verifyEmailDone(@RequestBody MemberDTO memberDTO) {
+        Map<String, String> memberData = new HashMap<>();
+        memberData.put("username", memberDTO.getUsername());
+        memberData.put("password", memberDTO.getPassword());
+        memberData.put("email", memberDTO.getEmail());
+
         try {
-            ResponseEntity<Map> response = userService.createMember(newMember,token);
+            ResponseEntity<Integer> response = userService.createMember(memberData);
+            String token = jwtService.generateJWT(memberDTO.getUsername(), response.getBody(), "member");
             if (response.getStatusCode() == HttpStatus.OK) {
                 return ResponseEntity.ok(token);
             } else {
@@ -133,5 +133,4 @@ public class AuthController {
             throw new RuntimeException("Error occurred while creating user: " + e.getMessage());
         }
     }
-
 }

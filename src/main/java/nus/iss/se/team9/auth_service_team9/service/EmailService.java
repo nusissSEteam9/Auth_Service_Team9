@@ -15,9 +15,9 @@ public class EmailService {
     @Autowired
     private RestTemplate restTemplate;
 
-    public ResponseEntity<String> sendVerifyCodeEmail(Member newMember, String code){
+    public ResponseEntity<String> sendVerifyCodeEmail(String email, String code){
         EmailDetails emailDetails = new EmailDetails();
-        emailDetails.setTo(newMember.getEmail());
+        emailDetails.setTo(email);
         emailDetails.setSubject("Email Verify");
         emailDetails.setBody("Your Email Verification Code is :" + code);
         String url = emailServiceUrl + "/sendEmailOTP";
