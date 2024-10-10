@@ -3,19 +3,15 @@ package nus.iss.se.team9.auth_service_team9;
 import jakarta.validation.Valid;
 import nus.iss.se.team9.auth_service_team9.model.Member;
 import nus.iss.se.team9.auth_service_team9.model.Status;
-import nus.iss.se.team9.auth_service_team9.model.User;
 import nus.iss.se.team9.auth_service_team9.service.UserService;
 import nus.iss.se.team9.auth_service_team9.service.EmailService;
 import nus.iss.se.team9.auth_service_team9.service.JWTService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -83,9 +79,11 @@ public class AuthController {
             response.put("errors", bindingResult.getFieldErrors());
             return ResponseEntity.badRequest().body(response);
         }
+
         newMember.setMemberStatus(Status.CREATED);
         // no email in request
         if (newMember.getEmail() == null || newMember.getEmail().isEmpty()) {
+            System.out.println("No email");
             String token = jwtService.generateJWT(newMember.getUsername(),newMember.getId(),"member");
             try {
                 ResponseEntity<Map> userServiceResponse = userService.createMember(newMember,token);
@@ -101,6 +99,7 @@ public class AuthController {
                     .body(response);
         }
         // email is exist in request
+        System.out.println("email need to be validated");
         String code = UserService.generateVerificationCode();
         try {
             ResponseEntity<String> emailResponse = emailService.sendVerifyCodeEmail(newMember,code);

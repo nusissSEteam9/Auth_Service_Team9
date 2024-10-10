@@ -1,4 +1,4 @@
-package nus.iss.se.team9.auth_service_team9;
+package nus.iss.se.team9.auth_service_team9.config;
 
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
