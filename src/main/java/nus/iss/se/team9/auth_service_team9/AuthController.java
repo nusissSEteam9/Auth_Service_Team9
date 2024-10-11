@@ -58,7 +58,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/logout")
+    @GetMapping("/logout")
     public ResponseEntity<String> logout() {
         return ResponseEntity.ok("Logout successful.");
     }
@@ -67,6 +67,18 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> registerMember(@Valid @RequestBody MemberDTO memberDTO) {
         Map<String, Object> response = new HashMap<>();
 
+        if (memberDTO.getUsername() == null || memberDTO.getUsername().isEmpty()) {
+            response.put("message", "Username is required.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        if (memberDTO.getPassword() == null || memberDTO.getPassword().isEmpty()) {
+            response.put("message", "Password is required.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        if (userService.validateUsername(memberDTO.getUsername())) {
+            response.put("message", "Username is already taken.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
         // No email in request
         if (memberDTO.getEmail() == null || memberDTO.getEmail().isEmpty()) {
             System.out.println("No email");
@@ -106,24 +118,43 @@ public class AuthController {
         }
     }
 
-
     @PostMapping("/verifyCode/success")
     public ResponseEntity<?> verifyEmailDone(@RequestBody MemberDTO memberDTO) {
+        Map<String, Object> response = new HashMap<>();
+
+        if (memberDTO.getUsername() == null || memberDTO.getUsername().isEmpty()) {
+            response.put("message", "Username is required.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        if (memberDTO.getPassword() == null || memberDTO.getPassword().isEmpty()) {
+            response.put("message", "Password is required.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        if (memberDTO.getEmail() == null || memberDTO.getEmail().isEmpty()) {
+            response.put("message", "Email is required.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+        if (userService.validateUsername(memberDTO.getUsername())) {
+            response.put("message", "Username is already taken.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
         Map<String, String> memberData = new HashMap<>();
         memberData.put("username", memberDTO.getUsername());
         memberData.put("password", memberDTO.getPassword());
         memberData.put("email", memberDTO.getEmail());
 
         try {
-            ResponseEntity<Integer> response = userService.createMember(memberData);
-            String token = jwtService.generateJWT(memberDTO.getUsername(), response.getBody(), "member");
-            if (response.getStatusCode() == HttpStatus.OK) {
-                return ResponseEntity.ok(token);
+            ResponseEntity<Integer> responseEntity = userService.createMember(memberData);
+            String token = jwtService.generateJWT(memberDTO.getUsername(), responseEntity.getBody(), "member");
+            if (responseEntity.getStatusCode() == HttpStatus.OK) {
+                return ResponseEntity.ok("JWT token :" + token + "\n new memberId : " + responseEntity.getBody());
             } else {
-                throw new RuntimeException("Failed to create user: " + response.getStatusCode());
+                throw new RuntimeException("Failed to create user: " + responseEntity.getStatusCode());
             }
         } catch (Exception e) {
-            throw new RuntimeException("Error occurred while creating user: " + e.getMessage());
+            response.put("message", "Error occurred while creating user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
 }

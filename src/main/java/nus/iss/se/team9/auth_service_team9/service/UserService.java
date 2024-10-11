@@ -56,8 +56,6 @@ public class UserService {
         }
     }
 
-
-
     public ResponseEntity<Map<String, Object>> validateUser(Map<String, String> credentials) {
         String url = userServiceUrl + "/validate-login";
         try {
@@ -69,6 +67,24 @@ public class UserService {
             }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    public boolean validateUsername(String username) {
+        System.out.println("Validate Username");
+        String url = userServiceUrl + "/validate-username/" + username;
+        try {
+            ResponseEntity<Boolean> response = restTemplate.getForEntity(url, Boolean.class);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                System.out.println(response.getBody());
+                return Boolean.TRUE.equals(response.getBody());
+            } else {
+                throw new RuntimeException("Failed to check username, status code: " + response.getStatusCode());
+            }
+        } catch (HttpClientErrorException e) {
+            throw new RuntimeException("Error occurred while checking username: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Unexpected error: " + e.getMessage());
         }
     }
 
