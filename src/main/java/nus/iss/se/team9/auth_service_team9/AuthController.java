@@ -143,12 +143,14 @@ public class AuthController {
         memberData.put("username", memberDTO.getUsername());
         memberData.put("password", memberDTO.getPassword());
         memberData.put("email", memberDTO.getEmail());
-
         try {
             ResponseEntity<Integer> responseEntity = userService.createMember(memberData);
             String token = jwtService.generateJWT(memberDTO.getUsername(), responseEntity.getBody(), "member");
             if (responseEntity.getStatusCode() == HttpStatus.OK) {
-                return ResponseEntity.ok("JWT token :" + token + "\n new memberId : " + responseEntity.getBody());
+                response.put("memberId", responseEntity.getBody());
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                        .body(response);
             } else {
                 throw new RuntimeException("Failed to create user: " + responseEntity.getStatusCode());
             }
