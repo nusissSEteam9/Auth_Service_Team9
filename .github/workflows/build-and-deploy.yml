@@ -10,11 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+
       # Step 1: Checkout code from GitHub
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       # Step 2: Set up JDK 17 for building the project
       - name: Set up JDK 17
