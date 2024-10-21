@@ -27,6 +27,11 @@ jobs:
 
       # Step 3: Build the JAR file using Gradle
       - name: Build with Gradle
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://iss-practice-module.cjq2w0cwqb5h.ap-southeast-1.rds.amazonaws.com:3306/HEALTHYRECIPY
+          SPRING_DATASOURCE_USERNAME: admin
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: ./gradlew clean build
 
       # Step 4: Log in to Amazon ECR
