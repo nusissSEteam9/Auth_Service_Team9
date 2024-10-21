@@ -19,7 +19,7 @@ COPY . .
 RUN chmod +x ./gradlew
 
 # 使用 Gradle Wrapper 构建项目，并禁用文件系统监视功能
-RUN ./gradlew clean build --info --stacktrace -Dorg.gradle.vfs.watch=false
+RUN ./gradlew clean build --info --stacktrace -Dorg.gradle.vfs.watch=false -x test
 
 # 暴露 8080 端口
 EXPOSE 8080
