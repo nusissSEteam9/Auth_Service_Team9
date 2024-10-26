@@ -1,8 +1,8 @@
 # 使用支持多架构的 Ubuntu 基础镜像
 FROM ubuntu:latest
 
-# 更新并安装必要的工具，包括 OpenJDK 21 和 findutils
-RUN apt-get update && apt-get install -y findutils openjdk-21-jdk
+# 更新并安装必要的工具，包括 OpenJDK 21、findutils 和 curl
+RUN apt-get update && apt-get install -y findutils openjdk-21-jdk curl
 
 # 获取架构并设置 JAVA_HOME
 RUN arch=$(dpkg --print-architecture) && \
