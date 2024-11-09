@@ -46,10 +46,15 @@ public class AuthController {
                 if (status != null && status.equals("deleted")) {
                     return ResponseEntity.status(403).body("Account has been deleted.");
                 }
+                boolean ifAdmin = "admin".equalsIgnoreCase(role);
+                Map<String, Object> loginResponse = new HashMap<>();
+                loginResponse.put("message", role + " login successful");
+                loginResponse.put("token", token);
+                loginResponse.put("ifAdmin", ifAdmin);
 
                 return ResponseEntity.ok()
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                        .body(role + " login successful, JWT token: " + token);
+                        .body(loginResponse);
             } else {
                 return ResponseEntity.status(401).body("Incorrect username or password.");
             }
